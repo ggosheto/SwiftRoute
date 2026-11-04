@@ -1,0 +1,26 @@
+# Python environments and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE settings
+.idea/
+.vscode/
+
+# Local configuration
+.env
+.env.*
+!.env.example
+
+# Download caches and logs
+cache/
+logs/
+*.log
+
+# Frontend dependencies and build output
+node_modules/
+dist/
