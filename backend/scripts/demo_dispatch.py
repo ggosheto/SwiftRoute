@@ -1,6 +1,4 @@
-from inspect import FullArgSpec
-
-from courier import Courier
+from backend.models.courier import Courier
 from routing import graph
 from dispatch_service import find_best_courier
 

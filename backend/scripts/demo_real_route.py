@@ -1,5 +1,5 @@
-from road_network import load_road_network, to_adjacency_dict, get_nearest_node, build_time_heuristic
-from routing import dijkstra, reconstruct_path, a_star
+from backend.routing.road_network import load_road_network, to_adjacency_dict, get_nearest_node, build_time_heuristic
+from backend.routing.algorithms import dijkstra, reconstruct_path, a_star
 
 road_network = load_road_network()
 graph = to_adjacency_dict(road_network)

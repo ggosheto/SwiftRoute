@@ -1,5 +1,5 @@
-from road_network import get_nearest_node, build_time_heuristic
-from routing import a_star
+from backend.routing.road_network import get_nearest_node, build_time_heuristic
+from backend.routing.algorithms import a_star
 
 def calculate_delivery_route(road_network, graph, restaurant, order):
     start_node = get_nearest_node(road_network, restaurant.latitude, restaurant.longitude)
