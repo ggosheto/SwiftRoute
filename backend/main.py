@@ -1,231 +1,378 @@
-from backend.models.courier import Courier
-from backend.services.courier_service import get_available_couriers, get_courier_by_id
-from fastapi import FastAPI, HTTPException
-from backend.schemas import CourierAvailabilityUpdate, CourierLocationUpdate, OrderCreate, OrderStatusUpdate
-from backend.services.courier_service import update_courier_availability, update_courier_location
-from backend.models.restaurant import Restaurant
-from backend.services.restaurant_service import get_restaurant_by_id
-from backend.services.order_service import create_order, get_order_by_id, assign_courier_to_order, update_order_status
-from backend.routing.road_network import load_road_network, to_adjacency_dict
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from backend.database import get_db
+from backend.db_models import CourierRecord, OrderRecord, RestaurantRecord
+
+from backend.schemas import (
+    CourierAvailabilityUpdate,
+    CourierLocationUpdate,
+    CourierRead,
+    OrderCreate,
+    OrderRead,
+    OrderStatusUpdate,
+    RestaurantRead,
+)
+
+from backend.services.order_service import (
+    assign_courier_to_order,
+    update_order_status,
+)
 from backend.services.dispatch_service import find_best_courier_for_restaurant
 from backend.services.route_service import calculate_delivery_route
+from backend.routing.road_network import load_road_network, to_adjacency_dict
+
 
 app = FastAPI(title="SwiftRoute")
 
 road_network = load_road_network()
 graph = to_adjacency_dict(road_network)
 
-couriers = [
-    Courier(1, "Иван", 42.14, 24.75, True),
-    Courier(2, "Желязко", 42.15, 24.76, True),
-    Courier(3, "Петя", 42.16, 24.77, False)
-]
+ACTIVE_STATUSES = ("assigned", "accepted", "picked_up")
 
-restaurants = [
-    Restaurant(1, "Демо ресторант Център", 42.145, 24.750),
-    Restaurant(2, "Демо ресторант Юг", 42.130, 24.755),
-]
 
-orders = []
+@app.exception_handler(IntegrityError)
+async def handle_integrity_error(request, error):
+    return JSONResponse(
+        status_code=409,
+        content={
+            "detail": (
+                "Промяната противоречи на състоянието на данните. "
+                "Обнови списъка."
+            )
+        },
+    )
 
-@app.get("/couriers/available")
-def read_available_couriers():
-    available_couriers = get_available_couriers(couriers)
-    return available_couriers
 
-@app.get("/couriers")
-def read_couriers():
-    return couriers
+def require_record(db, model, record_id, message, lock=False):
+    statement = select(model).where(model.id == record_id)
 
-@app.get("/couriers/{courier_id}")
-def read_courier(courier_id: int):
-    courier_by_id = get_courier_by_id(couriers, courier_id)
+    if lock:
+        statement = statement.with_for_update()
 
-    if courier_by_id == None:
-        raise HTTPException(
-            status_code=404,
-            detail="Куриерът не е намерен."
+    record = db.scalar(statement)
+
+    if record is None:
+        raise HTTPException(status_code=404, detail=message)
+
+    return record
+
+
+@app.get("/couriers", response_model=list[CourierRead])
+def read_couriers(db: Session = Depends(get_db)):
+    return db.scalars(
+        select(CourierRecord).order_by(CourierRecord.id)
+    ).all()
+
+
+@app.get("/couriers/available", response_model=list[CourierRead])
+def read_available_couriers(db: Session = Depends(get_db)):
+    return db.scalars(
+        select(CourierRecord)
+        .where(CourierRecord.is_available.is_(True))
+        .order_by(CourierRecord.id)
+    ).all()
+
+
+@app.get("/couriers/{courier_id}", response_model=CourierRead)
+def read_courier(courier_id: int, db: Session = Depends(get_db)):
+    return require_record(
+        db,
+        CourierRecord,
+        courier_id,
+        "Куриерът не е намерен.",
+    )
+
+
+@app.patch(
+    "/couriers/{courier_id}/availability",
+    response_model=CourierRead,
+)
+def change_courier_availability(
+    courier_id: int,
+    data: CourierAvailabilityUpdate,
+    db: Session = Depends(get_db),
+):
+    with db.begin():
+        courier = require_record(
+            db,
+            CourierRecord,
+            courier_id,
+            "Куриерът не е намерен.",
+            lock=True,
         )
 
-    return courier_by_id
+        if data.is_available:
+            active_order = db.scalar(
+                select(OrderRecord.id)
+                .where(
+                    OrderRecord.courier_id == courier_id,
+                    OrderRecord.status.in_(ACTIVE_STATUSES),
+                )
+                .limit(1)
+            )
 
-@app.patch("/couriers/{courier_id}/availability")
-def change_courier_availability(courier_id: int, data: CourierAvailabilityUpdate):
-    if data.is_available:
-        for order in orders:
-            if (
-                order.courier_id == courier_id
-                and order.status in ("assigned", "accepted", "picked_up")
-            ):
+            if active_order is not None:
                 raise HTTPException(
                     status_code=409,
-                    detail="Куриерът има активна поръчка и не може да бъде освободен."
+                    detail=(
+                        "Куриерът има активна поръчка "
+                        "и не може да бъде освободен."
+                    ),
                 )
 
-    updated_courier = update_courier_availability(couriers, courier_id, data.is_available)
+        courier.is_available = data.is_available
 
-    if updated_courier is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Куриерът не е намерен."
-        )
-    else:
-        return updated_courier
+    return courier
 
-@app.patch("/couriers/{courier_id}/location")
+
+@app.patch(
+    "/couriers/{courier_id}/location",
+    response_model=CourierRead,
+)
 def change_courier_location(
     courier_id: int,
-    data: CourierLocationUpdate
+    data: CourierLocationUpdate,
+    db: Session = Depends(get_db),
 ):
-    updated_courier = update_courier_location(couriers, courier_id, data.latitude, data.longitude)
-
-    if updated_courier is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Куриерът не е намерен."
+    with db.begin():
+        courier = require_record(
+            db,
+            CourierRecord,
+            courier_id,
+            "Куриерът не е намерен.",
+            lock=True,
         )
 
-    return updated_courier
+        courier.latitude = data.latitude
+        courier.longitude = data.longitude
 
-@app.get("/restaurants")
-def read_restaurants():
-    return restaurants
+    return courier
 
 
-@app.get("/restaurants/{restaurant_id}")
-def read_restaurant(restaurant_id: int):
-    restaurant = get_restaurant_by_id(restaurants, restaurant_id)
+@app.get("/restaurants", response_model=list[RestaurantRead])
+def read_restaurants(db: Session = Depends(get_db)):
+    return db.scalars(
+        select(RestaurantRecord).order_by(RestaurantRecord.id)
+    ).all()
 
-    if restaurant is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Ресторантът не е намерен."
+
+@app.get(
+    "/restaurants/{restaurant_id}",
+    response_model=RestaurantRead,
+)
+def read_restaurant(
+    restaurant_id: int,
+    db: Session = Depends(get_db),
+):
+    return require_record(
+        db,
+        RestaurantRecord,
+        restaurant_id,
+        "Ресторантът не е намерен.",
+    )
+
+
+@app.get("/orders", response_model=list[OrderRead])
+def read_orders(db: Session = Depends(get_db)):
+    return db.scalars(
+        select(OrderRecord).order_by(OrderRecord.id)
+    ).all()
+
+
+@app.post("/orders", status_code=201, response_model=OrderRead)
+def add_order(
+    data: OrderCreate,
+    db: Session = Depends(get_db),
+):
+    with db.begin():
+        require_record(
+            db,
+            RestaurantRecord,
+            data.restaurant_id,
+            "Ресторантът не е намерен.",
         )
 
-    return restaurant
+        order = OrderRecord(**data.model_dump())
+        db.add(order)
+        db.flush()
 
-@app.post("/orders", status_code=201)
-def add_order(data : OrderCreate):
-    new_order = create_order(orders, restaurants, data.restaurant_id, data.delivery_latitude, data.delivery_longitude)
+    return order
 
-    if new_order is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Ресторантът не е намерен."
-        )
-    return new_order
 
-@app.get("/orders")
-def get_order():
-    return orders
+@app.get(
+    "/restaurants/{restaurant_id}/recommended-courier",
+    response_model=CourierRead,
+)
+def recommend_courier(
+    restaurant_id: int,
+    db: Session = Depends(get_db),
+):
+    restaurant = require_record(
+        db,
+        RestaurantRecord,
+        restaurant_id,
+        "Ресторантът не е намерен.",
+    )
 
-@app.get("/restaurants/{restaurant_id}/recommended-courier")
-def recommend_courier(restaurant_id : int):
-    restaurant = get_restaurant_by_id(restaurants, restaurant_id)
-    if restaurant is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Ресторантът не е намерен."
-        )
+    couriers = db.scalars(
+        select(CourierRecord).order_by(CourierRecord.id)
+    ).all()
 
-    best_courier = find_best_courier_for_restaurant(road_network, graph, couriers, restaurant)
-    if best_courier is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Няма свободен куриер, който може да достигне ресторанта."
-        )
-    return best_courier
-
-@app.post("/orders/{order_id}/assign")
-def assign_order(order_id: int):
-    order = get_order_by_id(orders, order_id)
-    if order is None:
-        raise HTTPException(
-            status_code=404,
-            detail = "Поръчката не е намерена"
-        )
-    if order.status != "pending" or order.courier_id is not None:
-        raise HTTPException(
-            status_code=409,
-            detail = "Поръчката вече е възложена или не очаква куриер."
-        )
-
-    restaurant = get_restaurant_by_id(restaurants, order.restaurant_id)
-
-    if restaurant is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Ресторантът на поръчката не е намерен."
-        )
-
-    best_courier = find_best_courier_for_restaurant(road_network, graph, couriers, restaurant)
-    if best_courier is None:
-        raise HTTPException(
-            status_code=409,
-            detail="Няма намерен свободен куриер."
-        )
-
-    try:
-        courier_to_order = assign_courier_to_order(order, best_courier)
-        return courier_to_order
-    except ValueError as error:
-        raise HTTPException(
-            status_code=409,
-            detail=str(error)
-        )
-
-@app.patch("/orders/{order_id}/status")
-def change_order_status(order_id: int, data: OrderStatusUpdate):
-    order = get_order_by_id(orders, order_id)
-
-    if order is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Поръчката не е намерена."
-        )
-
-    if order.courier_id is None:
-        raise HTTPException(
-            status_code=409,
-            detail="Първо трябва да бъде възложен куриер."
-        )
-
-    courier = get_courier_by_id(couriers, order.courier_id)
+    courier = find_best_courier_for_restaurant(
+        road_network,
+        graph,
+        couriers,
+        restaurant,
+    )
 
     if courier is None:
         raise HTTPException(
-            status_code=409,
-            detail="Куриерът, свързан с поръчката, не е намерен."
+            status_code=404,
+            detail=(
+                "Няма свободен куриер, "
+                "който може да достигне ресторанта."
+            ),
         )
 
+    return courier
+
+
+@app.post("/orders/{order_id}/assign", response_model=OrderRead)
+def assign_order(order_id: int, db: Session = Depends(get_db)):
     try:
-        return update_order_status(order, courier, data.status)
+        with db.begin():
+            order = require_record(
+                db,
+                OrderRecord,
+                order_id,
+                "Поръчката не е намерена.",
+                lock=True,
+            )
+
+            if order.status != "pending" or order.courier_id is not None:
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "Поръчката вече е възложена "
+                        "или не очаква куриер."
+                    ),
+                )
+
+            restaurant = require_record(
+                db,
+                RestaurantRecord,
+                order.restaurant_id,
+                "Ресторантът не е намерен.",
+            )
+
+            couriers = db.scalars(
+                select(CourierRecord)
+                .order_by(CourierRecord.id)
+                .with_for_update()
+            ).all()
+
+            courier = find_best_courier_for_restaurant(
+                road_network,
+                graph,
+                couriers,
+                restaurant,
+            )
+
+            if courier is None:
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "Няма свободен куриер, "
+                        "който може да достигне ресторанта."
+                    ),
+                )
+
+            assign_courier_to_order(order, courier)
+
+        return order
+
     except ValueError as error:
         raise HTTPException(
             status_code=409,
-            detail=str(error)
-        )
+            detail=str(error),
+        ) from error
+
+
+@app.patch("/orders/{order_id}/status", response_model=OrderRead)
+def change_order_status(
+    order_id: int,
+    data: OrderStatusUpdate,
+    db: Session = Depends(get_db),
+):
+    try:
+        with db.begin():
+            order = require_record(
+                db,
+                OrderRecord,
+                order_id,
+                "Поръчката не е намерена.",
+                lock=True,
+            )
+
+            if order.courier_id is None:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Първо трябва да бъде възложен куриер.",
+                )
+
+            courier = require_record(
+                db,
+                CourierRecord,
+                order.courier_id,
+                "Куриерът не е намерен.",
+                lock=True,
+            )
+
+            update_order_status(order, courier, data.status)
+
+        return order
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=409,
+            detail=str(error),
+        ) from error
+
 
 @app.get("/orders/{order_id}/route")
-def get_order_route(order_id: int):
-    order = get_order_by_id(orders, order_id)
-    if order is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Поръчката не е намерена"
-        )
+def get_order_route(
+    order_id: int,
+    db: Session = Depends(get_db),
+):
+    order = require_record(
+        db,
+        OrderRecord,
+        order_id,
+        "Поръчката не е намерена.",
+    )
 
-    restaurant = get_restaurant_by_id(restaurants, order.restaurant_id)
-    if restaurant is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Ресторантът на поръчката не е намерен."
-        )
+    restaurant = require_record(
+        db,
+        RestaurantRecord,
+        order.restaurant_id,
+        "Ресторантът не е намерен.",
+    )
 
-    route = calculate_delivery_route(road_network, graph, restaurant, order)
+    route = calculate_delivery_route(
+        road_network,
+        graph,
+        restaurant,
+        order,
+    )
+
     if route is None:
         raise HTTPException(
             status_code=409,
-            detail = "В пътната мрежа няма маршрут от ресторанта до адреса за доставка."
+            detail="В пътната мрежа няма маршрут до адреса за доставка.",
         )
+
     return route
