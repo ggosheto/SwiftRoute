@@ -1,4 +1,4 @@
-from backend.routing.road_network import get_nearest_node, build_time_heuristic
+from backend.routing.road_network import get_nearest_node, build_time_heuristic, build_route_geometry
 from backend.routing.algorithms import a_star
 
 def calculate_delivery_route(road_network, graph, restaurant, order):
@@ -15,5 +15,6 @@ def calculate_delivery_route(road_network, graph, restaurant, order):
         "order_id": order.id,
         "restaurant_id": restaurant.id,
         "node_ids": path,
-        "travel_time_seconds": float(travel_time)
+        "travel_time_seconds": float(travel_time),
+        "geometry": build_route_geometry(road_network, path)
     }

@@ -1,13 +1,14 @@
-from courier import Courier
-from courier_service import get_available_couriers, get_courier_by_id
+from backend.models.courier import Courier
+from backend.services.courier_service import get_available_couriers, get_courier_by_id
 from fastapi import FastAPI, HTTPException
-from schemas import CourierAvailabilityUpdate, CourierLocationUpdate, OrderCreate, OrderStatusUpdate
-from courier_service import update_courier_availability, update_courier_location
-from restaurant import Restaurant
-from restaurant_service import get_restaurant_by_id
-from order_service import create_order, get_order_by_id, assign_courier_to_order, update_order_status
-from road_network import load_road_network, to_adjacency_dict
-from dispatch_service import find_best_courier_for_restaurant
+from backend.schemas import CourierAvailabilityUpdate, CourierLocationUpdate, OrderCreate, OrderStatusUpdate
+from backend.services.courier_service import update_courier_availability, update_courier_location
+from backend.models.restaurant import Restaurant
+from backend.services.restaurant_service import get_restaurant_by_id
+from backend.services.order_service import create_order, get_order_by_id, assign_courier_to_order, update_order_status
+from backend.routing.road_network import load_road_network, to_adjacency_dict
+from backend.services.dispatch_service import find_best_courier_for_restaurant
+from backend.services.route_service import calculate_delivery_route
 
 app = FastAPI(title="SwiftRoute")
 
@@ -32,6 +33,10 @@ def read_available_couriers():
     available_couriers = get_available_couriers(couriers)
     return available_couriers
 
+@app.get("/couriers")
+def read_couriers():
+    return couriers
+
 @app.get("/couriers/{courier_id}")
 def read_courier(courier_id: int):
     courier_by_id = get_courier_by_id(couriers, courier_id)
@@ -39,7 +44,7 @@ def read_courier(courier_id: int):
     if courier_by_id == None:
         raise HTTPException(
             status_code=404,
-            detail="Ресторантът не е намерен."
+            detail="Куриерът не е намерен."
         )
 
     return courier_by_id
@@ -62,7 +67,7 @@ def change_courier_availability(courier_id: int, data: CourierAvailabilityUpdate
     if updated_courier is None:
         raise HTTPException(
             status_code=404,
-            detail="Ресторантът не е намерен."
+            detail="Куриерът не е намерен."
         )
     else:
         return updated_courier
@@ -77,7 +82,7 @@ def change_courier_location(
     if updated_courier is None:
         raise HTTPException(
             status_code=404,
-            detail="Ресторантът не е намерен."
+            detail="Куриерът не е намерен."
         )
 
     return updated_courier
@@ -200,3 +205,27 @@ def change_order_status(order_id: int, data: OrderStatusUpdate):
             status_code=409,
             detail=str(error)
         )
+
+@app.get("/orders/{order_id}/route")
+def get_order_route(order_id: int):
+    order = get_order_by_id(orders, order_id)
+    if order is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Поръчката не е намерена"
+        )
+
+    restaurant = get_restaurant_by_id(restaurants, order.restaurant_id)
+    if restaurant is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Ресторантът на поръчката не е намерен."
+        )
+
+    route = calculate_delivery_route(road_network, graph, restaurant, order)
+    if route is None:
+        raise HTTPException(
+            status_code=409,
+            detail = "В пътната мрежа няма маршрут от ресторанта до адреса за доставка."
+        )
+    return route

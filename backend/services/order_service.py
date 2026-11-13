@@ -1,5 +1,5 @@
 from backend.models.order import Order
-from restaurant_service import get_restaurant_by_id
+from backend.services.restaurant_service import get_restaurant_by_id
 
 def create_order(orders, restaurants, restaurant_id, delivery_latitude, delivery_longitude):
     restaurant = get_restaurant_by_id(restaurants, restaurant_id)

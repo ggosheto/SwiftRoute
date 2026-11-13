@@ -1,6 +1,5 @@
-from backend.routing import distances_to_restaurant
-from routing import reverse_graph, dijkstra
-from road_network import get_nearest_node
+from backend.routing.algorithms import reverse_graph, dijkstra
+from backend.routing.road_network import get_nearest_node
 courier_nodes = {
     1: "A",
     2: "B",

@@ -4,9 +4,9 @@ import osmnx as ox
 
 def load_road_network():
     network_file = (
-        Path(__file__).resolve().parent
-        / "data"
-        / "plovdiv_drive.graphml"
+            Path(__file__).resolve().parent.parent
+            / "data"
+            / "plovdiv_drive.graphml"
     )
 
     return ox.io.load_graphml(filepath=network_file)
@@ -60,6 +60,35 @@ def build_time_heuristic(road_network, goal):
         heuristic[node] = distance_meters / max_speed_mps
 
     return heuristic
+
+def build_route_geometry(road_network, path):
+    if not path:
+        return None
+
+    if len(path) == 1:
+        node = road_network.nodes[path[0]]
+        return {
+            "type": "Point",
+            "coordinates": [node["x"], node["y"]]
+        }
+
+    segments = ox.routing.route_to_gdf(
+        road_network, path, weight="travel_time"
+    )
+
+    coordinates = []
+
+    for geometry in segments.geometry:
+        for longitude, latitude in geometry.coords:
+            point = [longitude, latitude]
+
+            if not coordinates or point != coordinates[-1]:
+                coordinates.append(point)
+
+    return {
+        "type": "LineString",
+        "coordinates": coordinates
+    }
 
 if __name__ == "__main__":
     road_network = load_road_network()

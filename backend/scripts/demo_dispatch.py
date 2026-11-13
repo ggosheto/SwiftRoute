@@ -1,6 +1,6 @@
 from backend.models.courier import Courier
-from routing import graph
-from dispatch_service import find_best_courier
+from backend.routing.algorithms import graph
+from backend.services.dispatch_service import find_best_courier
 
 courier1 = Courier(1, 'Иван', 42.14, 24.75, False)
 courier2 = Courier(2, 'Петър', 42.15, 24.76, False)
