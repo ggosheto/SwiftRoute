@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { navigateWithMotion } from "./ui/navigationMotion";
 import Dashboard from "./Dashboard";
 import Landing from "./ui/Landing";
 import "./neo.css";
@@ -6,7 +7,13 @@ import "./neo.css";
 export default function App() {
   const [hash, setHash] = useState(window.location.hash);
   useEffect(() => {
-    const update = () => setHash(window.location.hash);
+    const update = (event: HashChangeEvent) => {
+      const next = window.location.hash;
+      const wasDesk = new URL(event.oldURL).hash === "#dashboard";
+      const isDesk = next === "#dashboard";
+      if (wasDesk === isDesk) setHash(next);
+      else navigateWithMotion("page", isDesk, () => setHash(window.location.hash));
+    };
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, []);

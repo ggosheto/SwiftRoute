@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Atlas, Brand, Icon } from "./ui/DispatchVisuals";
+import { navigateWithMotion } from "./ui/navigationMotion";
 import DispatchMap from "./ui/DispatchMap";
 import NewOrder from "./ui/NewOrder";
 import { api, labels, message, next } from "./ui/dispatch";
@@ -121,6 +122,11 @@ export default function Dashboard() {
       if (v === routes.current) setFinding(false);
     }
   }
+  function openView(nextView: View) {
+    if (nextView === view) return;
+    const tabs: View[] = ["Табло", "Поръчки", "Куриери"];
+    navigateWithMotion("tab", tabs.indexOf(nextView) > tabs.indexOf(view), () => setView(nextView));
+  }
   function created(o: Order) {
     setCreate(false);
     setActionError("");
@@ -187,7 +193,7 @@ export default function Dashboard() {
                 key={n}
                 className={view === n ? "nav current" : "nav"}
                 aria-current={view === n ? "page" : undefined}
-                onClick={() => setView(n)}
+                onClick={() => openView(n)}
               >
                 <Icon name={["grid", "box", "bike"][i]} size={16} />
                 {n}
@@ -474,7 +480,7 @@ export default function Dashboard() {
                     </div>
                     <button
                       className="text-btn"
-                      onClick={() => setView("Куриери")}
+                      onClick={() => openView("Куриери")}
                     >
                       Всички <Icon name="arrow" size={14} />
                     </button>

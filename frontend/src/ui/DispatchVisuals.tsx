@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { ReactNode } from "react";
 
 const paths: Record<string, ReactNode> = {
@@ -75,10 +76,23 @@ export function Icon({ name, size = 18 }: { name: string; size?: number }) {
   );
 }
 export function Brand() {
+  const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const ink = "sr-ink-" + id;
+  const crop = "sr-crop-" + id;
   return (
-    <span className="sr-brand">
-      <img src="/swiftroute-logo.png" alt="" width="56" height="56" />
-      <span>SwiftRoute</span>
+    <span className="sr-brand sr-signature">
+      <svg className="sr-bird" viewBox="67 47 166 166" aria-hidden="true" focusable="false">
+        <defs>
+          <clipPath id={crop}><circle cx="150" cy="130" r="82" /></clipPath>
+          <filter id={ink} colorInterpolationFilters="sRGB">
+            <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  4 0 0 0 -2.75" />
+          </filter>
+        </defs>
+        <g clipPath={`url(#${crop})`}>
+          <image href="/swiftroute-logo.png" width="300" height="300" filter={`url(#${ink})`} />
+        </g>
+      </svg>
+      <span className="sr-word">Swift<b>Route</b></span>
     </span>
   );
 }

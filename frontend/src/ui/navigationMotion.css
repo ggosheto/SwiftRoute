@@ -1,0 +1,29 @@
+/* Only animate deliberate navigation; loading data must not start a transition. */
+:root[data-sr-motion] { --sr-in-x: 34px; --sr-out-x: -18px; }
+:root[data-sr-motion][data-sr-direction="back"] { --sr-in-x: -34px; --sr-out-x: 18px; }
+:root[data-sr-motion="tab"] { view-transition-name: none; }
+:root[data-sr-motion="tab"] .workspace .shell { view-transition-name: sr-panel; }
+:root[data-sr-motion="page"]::view-transition-old(root),
+:root[data-sr-motion="tab"]::view-transition-old(sr-panel) {
+  animation: sr-leave 180ms ease-in both;
+}
+:root[data-sr-motion="page"]::view-transition-new(root),
+:root[data-sr-motion="tab"]::view-transition-new(sr-panel) {
+  animation: sr-arrive 320ms cubic-bezier(.2,.75,.22,1) both;
+}
+@keyframes sr-leave { to { opacity: 0; transform: translateX(var(--sr-out-x)); } }
+@keyframes sr-arrive { from { opacity: 0; transform: translateX(var(--sr-in-x)); } }
+
+/* White illustration from the original badge, with a single readable wordmark. */
+.sr-brand.sr-signature { gap: 6px; color: white; line-height: 1; letter-spacing: -.055em; }
+.sr-signature .sr-bird { display: block; flex: none; width: 49px; height: 49px; overflow: visible; }
+.sr-signature .sr-word { display: inline-flex; align-items: baseline; }
+.sr-word b { font-weight: inherit; color: #639CC5; }
+.sr-word::after { content: ""; width: 5px; height: 5px; background: #EB2F33; margin-left: 3px; }
+@media (max-width: 720px) {
+  .sr-signature .sr-bird { width: 40px; height: 40px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sr-bird { transition: transform 240ms cubic-bezier(.2,.75,.22,1); }
+  a:is(:hover,:focus-visible) .sr-bird { transform: translate(2px,-2px) rotate(-3deg); }
+}
