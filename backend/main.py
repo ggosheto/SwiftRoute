@@ -22,7 +22,10 @@ from backend.services.order_service import (
     update_order_status,
 )
 from backend.services.dispatch_service import find_best_courier_for_restaurant
-from backend.services.route_service import calculate_delivery_route
+from backend.services.route_service import (
+    calculate_delivery_route,
+    calculate_pickup_route,
+)
 from backend.routing.road_network import load_road_network, to_adjacency_dict
 
 
@@ -373,6 +376,63 @@ def get_order_route(
         raise HTTPException(
             status_code=409,
             detail="В пътната мрежа няма маршрут до адреса за доставка.",
+        )
+
+    return route
+
+@app.get("/orders/{order_id}/pickup-route")
+def get_order_pickup_route(
+    order_id: int,
+    db: Session = Depends(get_db),
+):
+    order = require_record(
+        db,
+        OrderRecord,
+        order_id,
+        "Поръчката не е намерена.",
+    )
+
+    if order.courier_id is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Първо назначи куриер към поръчката.",
+        )
+
+    if order.status not in ("assigned", "accepted"):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Маршрутът до ресторанта е достъпен само "
+                "преди вземането на поръчката."
+            ),
+        )
+
+    restaurant = require_record(
+        db,
+        RestaurantRecord,
+        order.restaurant_id,
+        "Ресторантът на поръчката не е намерен.",
+    )
+
+    courier = require_record(
+        db,
+        CourierRecord,
+        order.courier_id,
+        "Куриерът на поръчката не е намерен.",
+    )
+
+    route = calculate_pickup_route(
+        road_network,
+        graph,
+        courier,
+        restaurant,
+        order,
+    )
+
+    if route is None:
+        raise HTTPException(
+            status_code=409,
+            detail="В пътната мрежа няма маршрут от куриера до ресторанта.",
         )
 
     return route

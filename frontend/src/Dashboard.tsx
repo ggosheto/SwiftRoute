@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Atlas, Brand, Icon } from "./ui/DispatchVisuals";
 import { navigateWithMotion } from "./ui/navigationMotion";
+import RouteSummary from "./ui/RouteSummary";
+import useOrderRoutes from "./ui/useOrderRoutes";
 import DispatchMap from "./ui/DispatchMap";
 import NewOrder from "./ui/NewOrder";
 import { api, labels, message, next } from "./ui/dispatch";
-import type { Courier, DeliveryRoute, Order, Place } from "./ui/dispatch";
+import type { Courier, Order, Place } from "./ui/dispatch";
 import "./App.css";
 
 type View = "Табло" | "Поръчки" | "Куриери";
@@ -25,16 +27,16 @@ export default function Dashboard() {
     [actionError, setActionError] = useState("");
   const [busy, setBusy] = useState<number | null>(null),
     [create, setCreate] = useState(false);
-  const [route, setRoute] = useState<DeliveryRoute | null>(null),
-    [routeId, setRouteId] = useState(""),
-    [routeErr, setRouteErr] = useState(""),
-    [finding, setFinding] = useState(false);
+  const {
+    route, pickupRoute, routeId, setRouteId, routeErr, routeNote, finding,
+    showRoute, invalidateRoutes, refreshSelected,
+  } = useOrderRoutes();
   const loads = useRef(0),
-    routes = useRef(0),
     working = useRef(false);
   const routePanel = useRef<HTMLElement>(null);
   const refresh = useCallback(async () => {
     const v = ++loads.current;
+    invalidateRoutes();
     setLoading(true);
     setDbError("");
     try {
@@ -43,25 +45,31 @@ export default function Dashboard() {
         api<Place[]>("/restaurants"),
         api<Courier[]>("/couriers"),
       ]);
-      if (v === loads.current)
+      if (v === loads.current) {
         setData({
           orders: [...orders].sort((a, b) => b.id - a.id),
           places,
           couriers,
         });
+        refreshSelected(orders);
+      }
     } catch (e) {
       if (v === loads.current) setDbError(message(e));
     } finally {
       if (v === loads.current) setLoading(false);
     }
-  }, []);
+  }, [invalidateRoutes, refreshSelected]);
   useEffect(() => {
     void refresh();
     return () => {
       loads.current++;
-      routes.current++;
     };
   }, [refresh]);
+  useEffect(() => {
+    if (finding && window.matchMedia("(max-width: 980px)").matches) {
+      routePanel.current?.scrollIntoView({ block: "start", behavior: "instant" });
+    }
+  }, [finding]);
   const orders = data?.orders ?? [],
     couriers = data?.couriers ?? [],
     places = data?.places ?? [];
@@ -76,6 +84,7 @@ export default function Dashboard() {
     const a = next[order.status];
     if (!a || working.current) return;
     working.current = true;
+    invalidateRoutes();
     setBusy(order.id);
     setActionError("");
     setNotice("");
@@ -101,27 +110,6 @@ export default function Dashboard() {
       setBusy(null);
     }
   }
-  async function showRoute(id: number) {
-    if (!Number.isSafeInteger(id) || id < 1) return;
-    const v = ++routes.current;
-    setRouteId(String(id));
-    setRoute(null);
-    setRouteErr("");
-    setFinding(true);
-    if (window.matchMedia("(max-width: 980px)").matches)
-      routePanel.current?.scrollIntoView({
-        block: "start",
-        behavior: "instant",
-      });
-    try {
-      const result = await api<DeliveryRoute>(`/orders/${id}/route`);
-      if (v === routes.current) setRoute(result);
-    } catch (e) {
-      if (v === routes.current) setRouteErr(message(e));
-    } finally {
-      if (v === routes.current) setFinding(false);
-    }
-  }
   function openView(nextView: View) {
     if (nextView === view) return;
     const tabs: View[] = ["Табло", "Поръчки", "Куриери"];
@@ -134,7 +122,7 @@ export default function Dashboard() {
     setFilter("Всички");
     setView("Табло");
     void refresh();
-    void showRoute(o.id);
+    void showRoute(o.id, o);
   }
   const free = couriers.filter((c) => c.is_available).length;
   const metrics = [
@@ -174,7 +162,6 @@ export default function Dashboard() {
       )}
     </div>
   );
-  const secs = Math.round(route?.travel_time_seconds ?? 0);
   const locked = loading || busy !== null || !!dbError;
   return (
     <div className="workspace">
@@ -339,7 +326,7 @@ export default function Dashboard() {
                       <article
                         key={o.id}
                         className={
-                          "order " + (route?.order_id === o.id ? "chosen" : "")
+                          "order " + ((route?.order_id ?? pickupRoute?.order_id) === o.id ? "chosen" : "")
                         }
                       >
                         <div className="order-main">
@@ -418,10 +405,10 @@ export default function Dashboard() {
                     <span className="eyebrow">НАВИГАЦИЯ</span>
                     <h2>Карта на маршрута</h2>
                   </div>
-                  <span className="tag">A*</span>
+                  <span className="tag">Дийкстра / A*</span>
                 </div>
-                {route ? (
-                  <DispatchMap key={route.order_id} route={route} />
+                {route || pickupRoute ? (
+                  <DispatchMap route={route} pickupRoute={pickupRoute} />
                 ) : (
                   <div className="map-placeholder">
                     <div className="map-ghost" />
@@ -429,7 +416,7 @@ export default function Dashboard() {
                       <span className="empty-ico">
                         <Icon name="route" size={26} />
                       </span>
-                      <b>{finding ? "Изчисляване…" : "Избери маршрут"}</b>
+                      <b>{finding ? "Изчисляване…" : routeErr ? "Маршрутът не е зареден" : "Избери маршрут"}</b>
                       <small>От поръчка или по номер</small>
                     </div>
                   </div>
@@ -439,16 +426,7 @@ export default function Dashboard() {
                     {routeErr}
                   </p>
                 )}
-                {route && (
-                  <div className="route-info">
-                    <b>{num(route.order_id)} · Ресторант → клиент</b>
-                    <span>
-                      <Icon name="clock" size={15} />
-                      {Math.floor(secs / 60)} мин {secs % 60} сек
-                    </span>
-                    <small>Прогнозно време за движение без текущ трафик.</small>
-                  </div>
-                )}
+                <RouteSummary delivery={route} pickup={pickupRoute} note={routeNote} />
                 <form
                   className="lookup"
                   onSubmit={(e) => {

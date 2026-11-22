@@ -62,3 +62,14 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
 export function message(e: unknown) {
   return e instanceof Error ? e.message : "Възникна грешка.";
 }
+
+export type PickupRoute = DeliveryRoute & {
+  courier_id: number;
+  restaurant_id: number;
+  node_ids: number[];
+};
+
+export function formatTravelTime(seconds: number): string {
+  const rounded = Math.max(0, Math.round(seconds));
+  return `${Math.floor(rounded / 60)} мин ${rounded % 60} сек`;
+}

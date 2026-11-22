@@ -1,10 +1,5 @@
 from backend.routing.algorithms import reverse_graph, dijkstra
 from backend.routing.road_network import get_nearest_node
-courier_nodes = {
-    1: "A",
-    2: "B",
-    3: "C"
-}
 
 def find_best_courier(graph, couriers, courier_nodes, restaurant_node):
     reversed_graph = reverse_graph(graph)
