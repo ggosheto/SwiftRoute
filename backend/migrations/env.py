@@ -1,6 +1,7 @@
 """Alembic използва съществуващите настройки от backend.database."""
 
 from logging.config import fileConfig
+from backend.session_models import SessionRecord
 
 from alembic import context
 

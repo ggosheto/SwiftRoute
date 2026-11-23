@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.db_models import CourierRecord, OrderRecord, RestaurantRecord
+from backend.auth_router import router as auth_router
 
 from backend.schemas import (
     CourierAvailabilityUpdate,
@@ -30,6 +31,7 @@ from backend.routing.road_network import load_road_network, to_adjacency_dict
 
 
 app = FastAPI(title="SwiftRoute")
+app.include_router(auth_router)
 
 road_network = load_road_network()
 graph = to_adjacency_dict(road_network)
