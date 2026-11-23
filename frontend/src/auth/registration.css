@@ -1,0 +1,26 @@
+.sr-auth-help a{color:#03203D;font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.sr-signup-steps{list-style:none;margin:32px 0 0;padding:0;display:grid;gap:20px;max-width:440px}
+.sr-signup-steps li{display:flex;align-items:center;gap:16px;font-size:15px;line-height:1.5}
+.sr-signup-steps b{display:grid;place-items:center;min-width:48px;height:48px;border:2px solid #000;background:#639CC5;color:#03203D;box-shadow:4px 4px 0 #000;font-size:20px}
+.sr-signup-fields{border:0;padding:0;margin:0;display:grid;gap:10px;min-width:0}
+.sr-auth .sr-role-picker{display:flex;gap:12px;border:0;padding:0;margin:0 0 12px;min-width:0}
+.sr-role-picker legend{font-weight:800;font-size:13px;margin-bottom:10px}
+.sr-auth .sr-role-picker label{flex:1;display:flex;align-items:center;gap:10px;padding:12px;border:2px solid #000;border-radius:8px;cursor:pointer;margin:0;background:#fff}
+.sr-auth .sr-role-picker label:has(input:checked){background:#639CC5;box-shadow:4px 4px 0 #000}
+.sr-auth .sr-role-picker input{width:18px;height:18px;margin:0;accent-color:#03203D;padding:0;flex-shrink:0}
+.sr-signup-fields>small{font-size:12px}.sr-signup-location{margin-top:10px;border-top:2px solid #000;padding-top:16px}
+.sr-signup-location p{font-size:12px;line-height:1.5;margin:0 0 10px}.sr-signup-location>div{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sr-signup-location label{display:grid;gap:8px;min-width:0}.sr-signup-success{line-height:1.6}.sr-signup-success>svg{color:#03203D;background:#639CC5;padding:8px;box-sizing:content-box;border:2px solid #000;border-radius:8px}
+.sr-signup-success h3{margin-top:20px}.sr-signup-success p{margin-block:16px;font-size:14px}.sr-signup-success .sr-auth-submit{text-decoration:none}
+.workspace .sr-users-intro{padding:0 28px 24px;line-height:1.6;font-size:13px}.sr-users .segments{flex-wrap:wrap}
+.sr-users-list{display:grid}.sr-user-row{display:flex;justify-content:space-between;gap:24px;padding:24px 28px;border-top:2px solid #000}
+.sr-user-info{min-width:0;display:grid;gap:8px}.sr-user-info p{margin:0;overflow-wrap:anywhere}.sr-user-info small{font-size:12px;line-height:1.5}
+.sr-user-heading{display:flex;align-items:center;flex-wrap:wrap;gap:12px}.sr-user-heading>b{overflow-wrap:anywhere;font-size:18px}
+.sr-user-status{border:2px solid #000;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:800;white-space:nowrap}
+.sr-user-status.pending{background:#639CC5;color:#03203D}.sr-user-status.active{background:#03203D;color:#fff}.sr-user-status.inactive{background:#fff;color:#03203D}
+.sr-user-actions{display:flex;align-items:center;min-width:150px;justify-content:flex-end}.sr-user-actions>small{max-width:180px;line-height:1.5;font-size:12px}
+.sr-user-confirm{max-width:340px;display:flex;gap:12px;flex-wrap:wrap}.sr-user-confirm p{flex-basis:100%;font-size:13px;line-height:1.5;margin:0}
+.sr-users-pagination{border-top:2px solid #000;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:13px}
+.sr-users-pagination>div{display:flex;gap:12px}.sr-users button{border-width:2px}.sr-users .notice,.sr-users .error{margin:18px 28px}
+@media(max-width:720px){.sr-signup-steps{display:none}.sr-user-row{flex-direction:column;padding:20px}.sr-user-actions{justify-content:flex-start}.sr-users-pagination{padding:20px;flex-wrap:wrap}.workspace .sr-users-intro{padding-inline:20px}.sr-users .notice,.sr-users .error{margin-inline:20px}}
+@media(max-width:400px){.sr-signup-location>div{grid-template-columns:1fr}.sr-auth .sr-role-picker{flex-direction:column}}

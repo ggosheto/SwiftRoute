@@ -10,14 +10,16 @@ import type { Courier, Order, Place } from "./ui/dispatch";
 import "./App.css";
 import { roleLabels, useAuth } from "./auth/AuthContext";
 import CourierControls from "./auth/CourierControls";
+import AdminUsers from "./auth/AdminUsers";
 import "./auth/auth.css";
 
-type View = "Табло" | "Поръчки" | "Куриери";
+type View = "Табло" | "Поръчки" | "Куриери" | "Потребители";
 type Filter = "Всички" | "Активни" | "Завършени";
 const num = (id: number) => "#" + String(id).padStart(3, "0");
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
+  const views: View[] = user?.role === "admin" ? ["Табло", "Поръчки", "Куриери", "Потребители"] : ["Табло", "Поръчки", "Куриери"];
   const [leaving, setLeaving] = useState(false);
   const [profileBusy, setProfileBusy] = useState(false);
   const canCreate = user?.role === "admin" || user?.role === "restaurant";
@@ -131,8 +133,7 @@ export default function Dashboard() {
   }
   function openView(nextView: View) {
     if (nextView === view) return;
-    const tabs: View[] = ["Табло", "Поръчки", "Куриери"];
-    navigateWithMotion("tab", tabs.indexOf(nextView) > tabs.indexOf(view), () => setView(nextView));
+    navigateWithMotion("tab", views.indexOf(nextView) > views.indexOf(view), () => setView(nextView));
   }
   function created(o: Order) {
     setCreate(false);
@@ -214,14 +215,14 @@ export default function Dashboard() {
             <Brand />
           </a>
           <nav aria-label="Основна навигация">
-            {(["Табло", "Поръчки", "Куриери"] as const).map((n, i) => (
+            {views.map((n, i) => (
               <button
                 key={n}
                 className={view === n ? "nav current" : "nav"}
                 aria-current={view === n ? "page" : undefined}
                 onClick={() => openView(n)}
               >
-                <Icon name={["grid", "box", "bike"][i]} size={16} />
+                <Icon name={["grid", "box", "bike", "grid"][i]} size={16} />
                 {n}
               </button>
             ))}
@@ -246,20 +247,21 @@ export default function Dashboard() {
                 ? user?.role === "courier" ? "Моите доставки" : user?.role === "restaurant" ? "Моят ресторант" : "Диспечерски център"
                 : view === "Поръчки"
                   ? "Регистър на поръчките"
-                  : "Екип на терен"}
+                  : view === "Потребители" ? "Управление на достъпа" : "Екип на терен"}
             </h1>
             <p>
               {view === "Табло"
                 ? "Поръчки, куриери и маршрути на едно място."
                 : view === "Поръчки"
                   ? "Проследи всяка поръчка от ресторанта до клиента."
-                  : "Виж кои куриери могат да поемат следващата доставка."}
+                  : view === "Потребители" ? "Регистрации, одобрение и активност на акаунтите." : "Виж кои куриери могат да поемат следващата доставка."}
             </p>
           </div>
           <span className="hero-tag">
             ПЛОВДИВ <b>/</b> BG–PDV
           </span>
         </div>
+        {view === "Потребители" && user?.role === "admin" ? <AdminUsers onChanged={() => void refresh()} /> : <>
         <div className="stats">
           {metrics.map(([ico, title, value, color]) => (
             <div className="stat" key={title}>
@@ -510,6 +512,7 @@ export default function Dashboard() {
             </aside>
           </div>
         )}
+        </>}
         <footer>
           <span>
             SwiftRoute <i>/</i> Оперативно табло

@@ -4,6 +4,7 @@ import { Brand, Icon } from "../ui/DispatchVisuals";
 import { message } from "../ui/dispatch";
 import { useAuth } from "./AuthContext";
 import "./auth.css";
+import "./registration.css";
 
 export default function LoginPage() {
   const { login, checking, error: connectionError, notice, retry } = useAuth();
@@ -80,7 +81,8 @@ export default function LoginPage() {
               {busy ? "Влизане…" : "Влез в платформата"}<Icon name="arrow" size={22} />
             </button>
           </form>
-          <p className="sr-auth-help">Нямаш акаунт или си забравил паролата?<br />Свържи се с администратора на платформата.</p>
+          <p className="sr-auth-help">Нямаш акаунт? <a href="#signup">Създай профил</a><br />
+            Забравена парола? Свържи се с администратора на платформата.</p>
         </>}
       </section>
     </main>

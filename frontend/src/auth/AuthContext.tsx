@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (busy.current) return;
     const request = ++version.current;
     // При проверка след смяна на таб/акаунт не оставяме стари данни на екрана.
-    resetApiSession();
+    if (identity.current) resetApiSession();
     setChecking(true);
     setError("");
     try {

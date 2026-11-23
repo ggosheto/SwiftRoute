@@ -5,6 +5,7 @@ import Landing from "./ui/Landing";
 import "./neo.css";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import LoginPage from "./auth/LoginPage";
+import SignupPage from "./auth/SignupPage";
 
 function Pages() {
   const { user, checking, generation } = useAuth();
@@ -12,23 +13,24 @@ function Pages() {
   useEffect(() => {
     const update = (event: HashChangeEvent) => {
       const next = window.location.hash;
-      const wasDesk = ["#dashboard", "#login"].includes(new URL(event.oldURL).hash);
-      const isDesk = ["#dashboard", "#login"].includes(next);
+      const wasDesk = ["#dashboard", "#login", "#signup"].includes(new URL(event.oldURL).hash);
+      const isDesk = ["#dashboard", "#login", "#signup"].includes(next);
       if (wasDesk === isDesk) setHash(next);
       else navigateWithMotion("page", isDesk, () => setHash(window.location.hash));
     };
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, []);
-  const desk = hash === "#dashboard" || hash === "#login";
+  const desk = ["#dashboard", "#login", "#signup"].includes(hash);
   useEffect(() => {
     document.title = desk
-      ? user ? "SwiftRoute · Работно табло" : "SwiftRoute · Вход"
+      ? user ? "SwiftRoute · Работно табло" : hash === "#signup" ? "SwiftRoute · Регистрация" : "SwiftRoute · Вход"
       : "SwiftRoute · Градска логистика";
     if (desk || !hash || hash === "#start") window.scrollTo(0, 0);
     else document.getElementById(hash.slice(1))?.scrollIntoView();
   }, [hash, desk, user]);
   if (!desk) return <Landing />;
+  if (!user && hash === "#signup") return <SignupPage />;
   if (checking || !user) return <LoginPage />;
   return <Dashboard key={`${user.id}:${generation}`} />;
 }

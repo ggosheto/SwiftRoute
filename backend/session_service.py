@@ -55,5 +55,6 @@ def find_session_user(db: Session, token: str | None) -> UserRecord | None:
             SessionRecord.token_hash == digest,
             SessionRecord.expires_at > datetime.now(timezone.utc),
             UserRecord.is_active.is_(True),
+            UserRecord.approval_status == "approved",
         )
     )

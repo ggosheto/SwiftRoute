@@ -34,8 +34,9 @@ class LoginLimiter:
     За публично разполагане с няколко процеса е нужен общ лимитер
     или ограничение в reverse proxy. Не се доверяваме на X-Forwarded-For тук.
     """
-    def __init__(self):
+    def __init__(self, limit: int = 20):
         self._lock = Lock()
+        self.limit = limit
         self._attempts: dict[str, tuple[float, int]] = {}
 
     def check(self, key: str) -> None:
@@ -46,7 +47,7 @@ class LoginLimiter:
                 if now - entry[0] < 60
             }
             started, count = self._attempts.get(key, (now, 0))
-            if count >= 20 or (key not in self._attempts and len(self._attempts) >= 10_000):
+            if count >= self.limit or (key not in self._attempts and len(self._attempts) >= 10_000):
                 raise HTTPException(429, "Твърде много опити. Опитай след минута.",
                                     headers={"Retry-After": "60", "Cache-Control": "no-store"})
             self._attempts[key] = (started, count + 1)
@@ -64,12 +65,18 @@ def login(data: LoginRequest, request: Request, response: Response):
         email = ""
 
     with SessionLocal.begin() as db:
-        user = db.scalar(select(UserRecord).where(UserRecord.email == email))
+        # Сериализира входа с деактивиране: не създаваме нова сесия
+        # непосредствено след изтриването на сесиите от администратора.
+        user = db.scalar(select(UserRecord).where(UserRecord.email == email).with_for_update())
         valid_password = verify_password(
             data.password.get_secret_value(),
             user.password_hash if user is not None else _DUMMY_HASH,
         )
-        if user is None or not valid_password or not user.is_active:
+        if user is None or not valid_password:
+            raise HTTPException(401, "Невалиден имейл или парола.", headers={"Cache-Control": "no-store"})
+        if user.approval_status == "pending":
+            raise HTTPException(403, "Регистрацията ти очаква одобрение от администратор.", headers={"Cache-Control": "no-store"})
+        if not user.is_active:
             raise HTTPException(401, "Невалиден имейл или парола.", headers={"Cache-Control": "no-store"})
 
         token = create_session(db, user.id, request.cookies.get(COOKIE_NAME))

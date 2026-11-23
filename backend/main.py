@@ -7,9 +7,11 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.db_models import CourierRecord, OrderRecord, RestaurantRecord
 from backend.auth_router import router as auth_router
+from backend.registration_router import router as registration_router
+from backend.admin_router import router as admin_router
 from backend.auth_dependencies import get_current_user, require_roles
 from backend.auth_schemas import CurrentUser
-from backend.permissions import visible_orders, visible_restaurants, visible_couriers
+from backend.permissions import visible_orders, visible_restaurants, visible_couriers, courier_can_work, restaurant_can_work
 
 from backend.schemas import (
     CourierAvailabilityUpdate,
@@ -35,6 +37,8 @@ from backend.routing.road_network import load_road_network, to_adjacency_dict
 
 app = FastAPI(title="SwiftRoute")
 app.include_router(auth_router)
+app.include_router(registration_router)
+app.include_router(admin_router)
 
 # Всеки бизнес endpoint изисква валидна сесия.
 business = APIRouter(dependencies=[Depends(get_current_user)])
@@ -104,7 +108,7 @@ def read_couriers(user: CurrentUser = Depends(get_current_user), db: Session = D
 def read_available_couriers(user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
     return db.scalars(
         visible_couriers(user)
-        .where(CourierRecord.is_available.is_(True))
+        .where(CourierRecord.is_available.is_(True), courier_can_work())
         .order_by(CourierRecord.id)
     ).all()
 
@@ -137,6 +141,11 @@ def change_courier_availability(
         )
 
         if data.is_available:
+            permitted = db.scalar(select(CourierRecord.id).where(
+                CourierRecord.id == courier_id, courier_can_work(),
+            ))
+            if permitted is None:
+                raise HTTPException(409, "Акаунтът на куриера не е одобрен или е деактивиран.")
             active_order = db.scalar(
                 select(OrderRecord.id)
                 .where(
@@ -221,10 +230,8 @@ def add_order(
     if user.role == "restaurant" and data.restaurant_id != user.restaurant_id:
         raise HTTPException(status_code=403, detail="Можеш да създаваш поръчки само за своя ресторант.")
     with db.begin():
-        require_record(
-            db,
-            RestaurantRecord,
-            data.restaurant_id,
+        require_visible(
+            db, select(RestaurantRecord).where(RestaurantRecord.id == data.restaurant_id, restaurant_can_work()),
             "Ресторантът не е намерен.",
         )
 
@@ -249,7 +256,7 @@ def recommend_courier(
     )
 
     couriers = db.scalars(
-        select(CourierRecord).order_by(CourierRecord.id)
+        select(CourierRecord).where(courier_can_work()).order_by(CourierRecord.id)
     ).all()
 
     courier = find_best_courier_for_restaurant(
@@ -295,6 +302,7 @@ def assign_order(order_id: int, user: CurrentUser = Depends(require_roles("admin
 
             couriers = db.scalars(
                 select(CourierRecord)
+                .where(courier_can_work())
                 .order_by(CourierRecord.id)
                 .with_for_update()
             ).all()
