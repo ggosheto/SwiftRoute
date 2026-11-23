@@ -33,8 +33,7 @@ export default function useOrderRoutes() {
     setRouteNote("");
     setFinding(true);
     try {
-      // /orders/{id} does not exist in this backend; use the existing list.
-      const order = knownOrder ?? (await api<Order[]>("/orders")).find(o => o.id === id);
+      const order = knownOrder ?? await api<Order>(`/orders/${id}`);
       if (request !== version.current) return;
       if (!order) throw new Error("Поръчката не е намерена.");
 

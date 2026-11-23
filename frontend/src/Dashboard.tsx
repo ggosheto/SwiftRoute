@@ -8,12 +8,31 @@ import NewOrder from "./ui/NewOrder";
 import { api, labels, message, next } from "./ui/dispatch";
 import type { Courier, Order, Place } from "./ui/dispatch";
 import "./App.css";
+import { roleLabels, useAuth } from "./auth/AuthContext";
+import CourierControls from "./auth/CourierControls";
+import "./auth/auth.css";
 
 type View = "Табло" | "Поръчки" | "Куриери";
 type Filter = "Всички" | "Активни" | "Завършени";
 const num = (id: number) => "#" + String(id).padStart(3, "0");
 
 export default function Dashboard() {
+  const { user, logout } = useAuth();
+  const [leaving, setLeaving] = useState(false);
+  const [profileBusy, setProfileBusy] = useState(false);
+  const canCreate = user?.role === "admin" || user?.role === "restaurant";
+  const canAdvance = (order: Order) => !!user && (
+    user.role === "admin" ||
+    (user.role === "restaurant" && order.restaurant_id === user.restaurant_id && order.status === "pending") ||
+    (user.role === "courier" && order.courier_id === user.courier_id && order.status !== "pending")
+  );
+  async function signOut() {
+    if (leaving) return;
+    setLeaving(true);
+    setActionError("");
+    try { await logout(); }
+    catch (e) { setActionError(message(e)); setLeaving(false); }
+  }
   const [view, setView] = useState<View>("Табло"),
     [filter, setFilter] = useState<Filter>("Всички");
   const [data, setData] = useState<{
@@ -82,7 +101,7 @@ export default function Dashboard() {
   );
   async function change(order: Order) {
     const a = next[order.status];
-    if (!a || working.current) return;
+    if (!a || !canAdvance(order) || working.current || profileBusy || leaving) return;
     working.current = true;
     invalidateRoutes();
     setBusy(order.id);
@@ -124,9 +143,23 @@ export default function Dashboard() {
     void refresh();
     void showRoute(o.id, o);
   }
+  async function changeCourier(courier: Courier, kind: "availability" | "location", values: object) {
+    if (working.current || leaving) return;
+    working.current = true;
+    setProfileBusy(true);
+    setActionError("");
+    setNotice("");
+    try {
+      await api<Courier>(`/couriers/${courier.id}/${kind}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values),
+      });
+      setNotice(kind === "availability" ? "Наличността е обновена." : "Местоположението е обновено.");
+    } catch (e) { setActionError(message(e)); }
+    finally { await refresh(); working.current = false; setProfileBusy(false); }
+  }
   const free = couriers.filter((c) => c.is_available).length;
   const metrics = [
-    ["box", "Всички поръчки", orders.length, "blue"],
+    ["box", user?.role === "admin" ? "Всички поръчки" : "Моите поръчки", orders.length, "blue"],
     [
       "pulse",
       "Активни доставки",
@@ -135,7 +168,7 @@ export default function Dashboard() {
       ).length,
       "violet",
     ],
-    ["bike", "Свободни куриери", free, "green"],
+    ["bike", user?.role === "courier" ? "Готов за доставка" : "Видими свободни куриери", free, "green"],
     [
       "check",
       "Доставени",
@@ -155,6 +188,12 @@ export default function Dashboard() {
           <span className={"presence " + (c.is_available ? "free" : "")}>
             {c.is_available ? "Свободен" : "Недостъпен"}
           </span>
+          {(user?.role === "admin" || user?.courier_id === c.id) && (
+            <CourierControls key={`${c.id}:${c.latitude}:${c.longitude}:${c.is_available}`} courier={c}
+              disabled={loading || busy !== null || profileBusy || leaving || !!dbError}
+              active={orders.some((o) => o.courier_id === c.id && ["assigned", "accepted", "picked_up"].includes(o.status))}
+              save={(kind, values) => changeCourier(c, kind, values)} />
+          )}
         </div>
       ))}
       {data && !couriers.length && (
@@ -162,7 +201,7 @@ export default function Dashboard() {
       )}
     </div>
   );
-  const locked = loading || busy !== null || !!dbError;
+  const locked = loading || busy !== null || profileBusy || leaving || !!dbError;
   return (
     <div className="workspace">
       <header className="top">
@@ -187,10 +226,12 @@ export default function Dashboard() {
               </button>
             ))}
           </nav>
-          <span className="city">
-            <Icon name="pin" size={15} />
-            Пловдив
-          </span>
+          <div className="account-menu">
+            <div><small>{user ? roleLabels[user.role] : ""}</small><b>{user?.email}</b></div>
+            <button className="secondary" onClick={() => void signOut()} disabled={leaving || busy !== null || profileBusy}>
+              {leaving ? "Излизане…" : "Изход"}
+            </button>
+          </div>
         </div>
       </header>
       <main className="shell">
@@ -198,11 +239,11 @@ export default function Dashboard() {
           <Atlas />
           <div className="hero-copy">
             <span className="kicker">
-              <i /> РЕСТОРАНТСКА ЛОГИСТИКА
+              <i /> {user ? roleLabels[user.role].toUpperCase() : ""} / ПЛОВДИВ
             </span>
             <h1>
               {view === "Табло"
-                ? "Диспечерски център"
+                ? user?.role === "courier" ? "Моите доставки" : user?.role === "restaurant" ? "Моят ресторант" : "Диспечерски център"
                 : view === "Поръчки"
                   ? "Регистър на поръчките"
                   : "Екип на терен"}
@@ -289,14 +330,14 @@ export default function Dashboard() {
                       Поръчки <em>{data ? orders.length : "—"}</em>
                     </h2>
                   </div>
-                  <button
+                  {canCreate && <button
                     className="primary"
                     disabled={!places.length || locked}
                     onClick={() => setCreate(true)}
                   >
                     <Icon name="plus" size={16} />
                     Нова поръчка
-                  </button>
+                  </button>}
                 </div>
                 <div className="toolbar">
                   <div className="segments" aria-label="Филтър на поръчките">
@@ -348,7 +389,7 @@ export default function Dashboard() {
                           <span>
                             <Icon name="bike" size={15} />
                             {couriers.find((c) => c.id === o.courier_id)
-                              ?.name ?? "Без куриер"}
+                              ?.name ?? (o.courier_id ? "Куриер №" + o.courier_id : "Без куриер")}
                           </span>
                           <div>
                             <button
@@ -358,7 +399,7 @@ export default function Dashboard() {
                               <Icon name="route" size={14} />
                               Маршрут
                             </button>
-                            {next[o.status] && (
+                            {next[o.status] && canAdvance(o) && (
                               <button
                                 className="step"
                                 disabled={locked}
@@ -476,7 +517,7 @@ export default function Dashboard() {
           <span>Пловдив, България</span>
         </footer>
       </main>
-      {create && (
+      {create && canCreate && (
         <NewOrder
           places={places}
           close={() => setCreate(false)}
