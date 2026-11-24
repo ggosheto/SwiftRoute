@@ -2,13 +2,13 @@
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import case, delete, func, select
-from backend.auth_dependencies import no_cache, require_roles
-from backend.auth_models import UserRecord
-from backend.database import SessionLocal
-from backend.db_models import CourierRecord, OrderRecord, RestaurantRecord
-from backend.permissions import ACTIVE_STATUSES
-from backend.registration_schemas import AdminUserRead, AdminUsersPage, UserActivationUpdate
-from backend.session_models import SessionRecord
+from core.auth_dependencies import no_cache, require_roles
+from backend.db.auth_models import UserRecord
+from backend.db.database import SessionLocal
+from backend.db.db_models import CourierRecord, OrderRecord, RestaurantRecord
+from core.permissions import ACTIVE_STATUSES
+from backend.schemas.registration_schemas import AdminUserRead, AdminUsersPage, UserActivationUpdate
+from backend.db.session_models import SessionRecord
 
 router = APIRouter(prefix="/admin", tags=["Администрация"],
     dependencies=[Depends(require_roles("admin")), Depends(no_cache)])

@@ -6,9 +6,9 @@
 
 from sqlalchemy import false, or_, select
 
-from backend.auth_schemas import CurrentUser
-from backend.auth_models import UserRecord
-from backend.db_models import CourierRecord, OrderRecord, RestaurantRecord
+from backend.schemas.auth_schemas import CurrentUser
+from backend.db.auth_models import UserRecord
+from backend.db.db_models import CourierRecord, OrderRecord, RestaurantRecord
 
 
 ACTIVE_STATUSES = ("assigned", "accepted", "picked_up")

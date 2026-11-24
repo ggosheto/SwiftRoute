@@ -1,7 +1,7 @@
 from sqlalchemy import select, text
 
-from backend.database import Base, SessionLocal, engine
-from backend.db_models import CourierRecord, RestaurantRecord
+from backend.db.database import Base, SessionLocal, engine
+from backend.db.db_models import CourierRecord, RestaurantRecord
 
 
 def main():

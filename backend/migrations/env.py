@@ -1,11 +1,10 @@
 """Alembic използва съществуващите настройки от backend.database."""
 
 from logging.config import fileConfig
-from backend.session_models import SessionRecord
 
 from alembic import context
 
-from backend.database import Base, engine
+from backend.db.database import Base, engine
 from backend.auth_models import UserRecord  # noqa: F401 — регистрира модела в Base
 
 

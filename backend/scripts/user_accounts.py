@@ -8,10 +8,10 @@ import warnings
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError
 
-from backend.auth_models import UserRecord
-from backend.database import SessionLocal
-from backend.db_models import CourierRecord, RestaurantRecord
-from backend.security import validate_password
+from backend.db.auth_models import UserRecord
+from backend.db.database import SessionLocal
+from backend.db.db_models import CourierRecord, RestaurantRecord
+from core.security import validate_password
 from backend.services.user_service import create_user, normalize_email, validate_role_links
 
 

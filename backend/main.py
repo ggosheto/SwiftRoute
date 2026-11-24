@@ -4,16 +4,16 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from backend.database import get_db
-from backend.db_models import CourierRecord, OrderRecord, RestaurantRecord
-from backend.auth_router import router as auth_router
-from backend.registration_router import router as registration_router
-from backend.admin_router import router as admin_router
-from backend.auth_dependencies import get_current_user, require_roles
-from backend.auth_schemas import CurrentUser
-from backend.permissions import visible_orders, visible_restaurants, visible_couriers, courier_can_work, restaurant_can_work
+from backend.db.database import get_db
+from backend.db.db_models import CourierRecord, OrderRecord, RestaurantRecord
+from routers.auth_router import router as auth_router
+from routers.registration_router import router as registration_router
+from routers.admin_router import router as admin_router
+from core.auth_dependencies import get_current_user, require_roles
+from schemas.auth_schemas import CurrentUser
+from core.permissions import visible_orders, visible_restaurants, visible_couriers, courier_can_work, restaurant_can_work
 
-from backend.schemas import (
+from schemas.delivery import (
     CourierAvailabilityUpdate,
     CourierLocationUpdate,
     CourierRead,

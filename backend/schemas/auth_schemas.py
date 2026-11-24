@@ -1,5 +1,3 @@
-"""Входни данни и публичен отговор — никога не връщаме password_hash."""
-
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr

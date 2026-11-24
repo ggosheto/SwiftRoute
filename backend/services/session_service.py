@@ -1,5 +1,3 @@
-"""Операции със сесии; извикващият управлява транзакцията."""
-
 import hashlib
 import re
 import secrets
@@ -8,8 +6,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from db.auth_models import UserRecord
-from db.session_models import SessionRecord
+from backend.db.auth_models import UserRecord
+from backend.db.session_models import SessionRecord
 
 
 SESSION_SECONDS = 8 * 60 * 60
@@ -29,7 +27,6 @@ def revoke_session(db: Session, token: str | None) -> None:
 
 
 def create_session(db: Session, user_id: int, previous_token: str | None) -> str:
-    # Успешният вход сменя токена, включително при вход с друг акаунт.
     revoke_session(db, previous_token)
     now = datetime.now(timezone.utc)
     token = secrets.token_urlsafe(32)
@@ -47,7 +44,6 @@ def find_session_user(db: Session, token: str | None) -> UserRecord | None:
     digest = token_digest(token)
     if digest is None:
         return None
-    # Четем ролята и активността от users при всяка заявка, не от бисквитката.
     return db.scalar(
         select(UserRecord)
         .join(SessionRecord, SessionRecord.user_id == UserRecord.id)

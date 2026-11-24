@@ -1,6 +1,6 @@
 from sqlalchemy import text
 
-from backend.database import engine
+from backend.db.database import engine
 
 
 def main():

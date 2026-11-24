@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 
 from sqlalchemy import delete
 
-from backend.database import SessionLocal
-from backend.session_models import SessionRecord
+from backend.db.database import SessionLocal
+from backend.db.session_models import SessionRecord
 
 
 def main():

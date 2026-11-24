@@ -1,7 +1,7 @@
 from sqlalchemy import CheckConstraint, ForeignKey, Identity, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.database import Base
+from backend.db.database import Base
 
 
 class RestaurantRecord(Base):

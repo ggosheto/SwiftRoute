@@ -5,8 +5,8 @@ from datetime import datetime
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from db.database import Base
-from backend.auth_models import UserRecord
+from backend.db.database import Base
+from backend.db.auth_models import UserRecord
 
 
 class SessionRecord(Base):

@@ -7,15 +7,15 @@ from time import monotonic
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import select
 
-from backend.database import SessionLocal
-from backend.auth_models import UserRecord
-from backend.auth_schemas import CurrentUser, LoginRequest
-from backend.auth_dependencies import (
+from backend.db.database import SessionLocal
+from backend.db.auth_models import UserRecord
+from backend.schemas.auth_schemas import CurrentUser, LoginRequest
+from core.auth_dependencies import (
     COOKIE_NAME, COOKIE_SECURE, check_request_origin, get_current_user, no_cache,
 )
-from backend.security import hash_password, verify_password
+from core.security import hash_password, verify_password
 from backend.services.user_service import normalize_email
-from backend.session_service import SESSION_SECONDS, create_session, revoke_session
+from services.session_service import SESSION_SECONDS, create_session, revoke_session
 
 
 router = APIRouter(

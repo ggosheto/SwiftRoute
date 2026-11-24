@@ -1,4 +1,3 @@
-"""Публична регистрация и безопасни административни отговори."""
 from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 from backend.services.user_service import normalize_email

@@ -1,12 +1,10 @@
-"""Създаване на акаунт от доверен административен инструмент."""
-
 from email_validator import EmailNotValidError, validate_email
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.auth_models import UserRecord
-from backend.db_models import CourierRecord, RestaurantRecord
-from backend.security import hash_password
+from backend.db.auth_models import UserRecord
+from backend.db.db_models import CourierRecord, RestaurantRecord
+from core.security import hash_password
 
 
 def normalize_email(email: str) -> str:
@@ -15,7 +13,6 @@ def normalize_email(email: str) -> str:
     except EmailNotValidError as error:
         raise ValueError("Въведи валиден имейл адрес.") from error
 
-    # Политика на SwiftRoute: имейлът за вход не различава големи/малки букви.
     normalized = result.normalized.lower()
     if len(normalized) > 254:
         raise ValueError("Имейл адресът е прекалено дълъг.")
@@ -49,11 +46,7 @@ def create_user(
     restaurant_id: int | None = None,
     courier_id: int | None = None,
 ) -> UserRecord:
-    """Извиква се вътре в db.begin(); извикващият управлява транзакцията.
 
-    Това не е публична регистрация. При бъдещ HTTP endpoint извикващият
-    задължително трябва да провери правото за създаване на дадената роля.
-    """
     email = normalize_email(email)
     validate_role_links(role, restaurant_id, courier_id)
 
