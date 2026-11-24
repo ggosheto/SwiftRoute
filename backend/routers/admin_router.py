@@ -2,11 +2,11 @@
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import case, delete, func, select
-from core.auth_dependencies import no_cache, require_roles
+from backend.core.auth_dependencies import no_cache, require_roles
 from backend.db.auth_models import UserRecord
 from backend.db.database import SessionLocal
 from backend.db.db_models import CourierRecord, OrderRecord, RestaurantRecord
-from core.permissions import ACTIVE_STATUSES
+from backend.core.permissions import ACTIVE_STATUSES
 from backend.schemas.registration_schemas import AdminUserRead, AdminUsersPage, UserActivationUpdate
 from backend.db.session_models import SessionRecord
 

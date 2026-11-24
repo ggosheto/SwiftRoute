@@ -10,12 +10,12 @@ from sqlalchemy import select
 from backend.db.database import SessionLocal
 from backend.db.auth_models import UserRecord
 from backend.schemas.auth_schemas import CurrentUser, LoginRequest
-from core.auth_dependencies import (
+from backend.core.auth_dependencies import (
     COOKIE_NAME, COOKIE_SECURE, check_request_origin, get_current_user, no_cache,
 )
-from core.security import hash_password, verify_password
+from backend.core.security import hash_password, verify_password
 from backend.services.user_service import normalize_email
-from services.session_service import SESSION_SECONDS, create_session, revoke_session
+from backend.services.session_service import SESSION_SECONDS, create_session, revoke_session
 
 
 router = APIRouter(

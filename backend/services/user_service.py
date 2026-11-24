@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from backend.db.auth_models import UserRecord
 from backend.db.db_models import CourierRecord, RestaurantRecord
-from core.security import hash_password
+from backend.core.security import hash_password
 
 
 def normalize_email(email: str) -> str:

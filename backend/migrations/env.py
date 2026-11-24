@@ -5,7 +5,8 @@ from logging.config import fileConfig
 from alembic import context
 
 from backend.db.database import Base, engine
-from backend.auth_models import UserRecord  # noqa: F401 — регистрира модела в Base
+from backend.db.session_models import SessionRecord  # noqa: F401
+from backend.db.auth_models import UserRecord  # noqa: F401 — регистрира модела в Base
 
 
 config = context.config

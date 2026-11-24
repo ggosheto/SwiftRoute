@@ -6,14 +6,14 @@ from sqlalchemy.orm import Session
 
 from backend.db.database import get_db
 from backend.db.db_models import CourierRecord, OrderRecord, RestaurantRecord
-from routers.auth_router import router as auth_router
-from routers.registration_router import router as registration_router
-from routers.admin_router import router as admin_router
-from core.auth_dependencies import get_current_user, require_roles
-from schemas.auth_schemas import CurrentUser
-from core.permissions import visible_orders, visible_restaurants, visible_couriers, courier_can_work, restaurant_can_work
+from backend.routers.auth_router import router as auth_router
+from backend.routers.registration_router import router as registration_router
+from backend.routers.admin_router import router as admin_router
+from backend.core.auth_dependencies import get_current_user, require_roles
+from backend.schemas.auth_schemas import CurrentUser
+from backend.core.permissions import visible_orders, visible_restaurants, visible_couriers, courier_can_work, restaurant_can_work
 
-from schemas.delivery import (
+from backend.schemas.delivery import (
     CourierAvailabilityUpdate,
     CourierLocationUpdate,
     CourierRead,
@@ -36,6 +36,13 @@ from backend.routing.road_network import load_road_network, to_adjacency_dict
 
 
 app = FastAPI(title="SwiftRoute")
+
+
+@app.get("/health", include_in_schema=False)
+def health_check():
+    """Process health only; does not verify PostgreSQL connectivity."""
+    return {"status": "ok"}
+
 app.include_router(auth_router)
 app.include_router(registration_router)
 app.include_router(admin_router)

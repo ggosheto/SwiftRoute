@@ -2,13 +2,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from core.auth_dependencies import check_request_origin, no_cache
+from backend.core.auth_dependencies import check_request_origin, no_cache
 from backend.db.auth_models import UserRecord
-from routers.auth_router import LoginLimiter
+from backend.routers.auth_router import LoginLimiter
 from backend.db.database import SessionLocal
 from backend.db.db_models import CourierRecord, RestaurantRecord
 from backend.schemas.registration_schemas import RegisterRequest, RegistrationResult
-from core.security import hash_password
+from backend.core.security import hash_password
 
 router = APIRouter(prefix="/auth", tags=["Регистрация"],
     dependencies=[Depends(check_request_origin), Depends(no_cache)])

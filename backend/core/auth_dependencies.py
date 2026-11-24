@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, Request, Response
 # database зарежда .env преди да прочетем AUTH_* настройките по-долу.
 from backend.db.database import SessionLocal
 from backend.schemas.auth_schemas import CurrentUser
-from services.session_service import find_session_user
+from backend.services.session_service import find_session_user
 
 
 COOKIE_NAME = "swiftroute_session"

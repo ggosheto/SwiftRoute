@@ -34,10 +34,18 @@ database_url = URL.create(
     database=required_setting("DB_NAME"),
 )
 
+connection_options = {"connect_timeout": 10}
+# Locally, preserve psycopg defaults. For hosted PostgreSQL set DB_SSLMODE=require.
+ssl_mode = os.getenv("DB_SSLMODE", "").strip()
+if ssl_mode:
+    if ssl_mode not in {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}:
+        raise RuntimeError("Невалидна настройка DB_SSLMODE.")
+    connection_options["sslmode"] = ssl_mode
+
 engine = create_engine(
     database_url,
     pool_pre_ping=True,
-    connect_args={"connect_timeout": 10},
+    connect_args=connection_options,
 )
 
 SessionLocal = sessionmaker(
