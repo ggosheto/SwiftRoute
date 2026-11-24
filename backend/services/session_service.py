@@ -8,8 +8,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from backend.auth_models import UserRecord
-from backend.session_models import SessionRecord
+from db.auth_models import UserRecord
+from db.session_models import SessionRecord
 
 
 SESSION_SECONDS = 8 * 60 * 60

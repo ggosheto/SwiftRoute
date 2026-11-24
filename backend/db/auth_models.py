@@ -3,8 +3,8 @@
 from sqlalchemy import CheckConstraint, ForeignKey, Identity, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.database import Base
-from backend.db_models import CourierRecord, RestaurantRecord
+from db.database import Base
+from db.db_models import CourierRecord, RestaurantRecord
 
 
 class UserRecord(Base):

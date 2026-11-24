@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from backend.database import Base
+from db.database import Base
 from backend.auth_models import UserRecord
 
 
