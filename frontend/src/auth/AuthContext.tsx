@@ -43,28 +43,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       identity.current = key;
       resetApiSession();
       setGeneration((n) => n + 1);
+      setUser(value);
     }
-    setUser(value);
   }, []);
 
-  const retry = useCallback(async () => {
+  const checkSession = useCallback(async (background = false) => {
     if (busy.current) return;
     const request = ++version.current;
-    // При проверка след смяна на таб/акаунт не оставяме стари данни на екрана.
-    if (identity.current) resetApiSession();
-    setChecking(true);
+    // Фоновата проверка запазва екрана и текущите заявки.
+    if (!background) setChecking(true);
     setError("");
     try {
       const current = await api<User>("/auth/me");
       if (request === version.current) accept(current);
     } catch (e) {
       if (request !== version.current) return;
-      accept(null);
-      if (!(e instanceof ApiError && e.status === 401)) setError(message(e));
+      if (e instanceof ApiError && e.status === 401) {
+        if (identity.current) setNotice("Сесията е изтекла или е прекратена. Влез отново.");
+        accept(null);
+      } else {
+        // Временна мрежова или сървърна грешка не означава изтекла сесия.
+        setError(message(e));
+      }
     } finally {
       if (request === version.current) setChecking(false);
     }
   }, [accept]);
+
+  const retry = useCallback(() => checkSession(), [checkSession]);
 
   useEffect(() => {
     void retry();
@@ -75,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError("");
       setNotice("Сесията е изтекла или е прекратена. Влез отново.");
     };
-    const visible = () => { if (document.visibilityState === "visible") void retry(); };
+    const visible = () => { if (document.visibilityState === "visible") void checkSession(true); };
     window.addEventListener("swiftroute:session-expired", expired);
     document.addEventListener("visibilitychange", visible);
     if (typeof BroadcastChannel !== "undefined") {
@@ -90,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       channel.current?.close();
       channel.current = null;
     };
-  }, [retry, accept]);
+  }, [retry, checkSession, accept]);
 
   async function login(email: string, password: string) {
     if (busy.current) throw new Error("Изчакай текущото действие.");
