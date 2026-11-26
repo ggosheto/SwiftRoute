@@ -9,6 +9,7 @@ from backend.db.database import SessionLocal
 from backend.db.db_models import CourierRecord, RestaurantRecord
 from backend.schemas.registration_schemas import RegisterRequest, RegistrationResult
 from backend.core.security import hash_password
+from backend.routing.service_area import require_service_area
 
 router = APIRouter(prefix="/auth", tags=["Регистрация"],
     dependencies=[Depends(check_request_origin), Depends(no_cache)])
@@ -18,6 +19,7 @@ registration_limiter = LoginLimiter(limit=5)
 @router.post("/register", status_code=201, response_model=RegistrationResult)
 def register(data: RegisterRequest, request: Request):
     registration_limiter.check(request.client.host if request.client else "unknown")
+    require_service_area(data.latitude, data.longitude, "Адресът на профила")
     # Скъпото хеширане е преди транзакцията. Паролата не се записва в прав текст.
     password_hash = hash_password(data.password.get_secret_value())
     try:

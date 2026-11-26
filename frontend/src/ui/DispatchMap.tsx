@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { DeliveryRoute, PickupRoute, Point } from "./dispatch";
+import type { Feature, Polygon } from "geojson";
+import { api } from "./dispatch";
 
 type Props = {
   route: DeliveryRoute | null;
@@ -21,6 +23,25 @@ export default function DispatchMap({ route, pickupRoute = null }: Props) {
   const mapRef = useRef<L.Map | null>(null);
   const layersRef = useRef<L.LayerGroup | null>(null);
   const [tileError, setTileError] = useState(false);
+  const [area, setArea] = useState<Feature<Polygon> | null>(null);
+  const [areaError, setAreaError] = useState(false);
+  const [areaAttempt, setAreaAttempt] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    setAreaError(false);
+    void api<Feature<Polygon>>("/service-area", { signal: controller.signal })
+      .then((data) => {
+        if (data.type !== "Feature" || data.geometry?.type !== "Polygon"
+          || !data.geometry.coordinates[0]?.length) throw new Error("Невалидна зона");
+        if (active) setArea(data);
+      })
+      .catch(() => { if (active) setAreaError(true); })
+      .finally(() => clearTimeout(timeout));
+    return () => { active = false; clearTimeout(timeout); controller.abort(); };
+  }, [areaAttempt]);
 
   useEffect(() => {
     if (!host.current) return;
@@ -29,6 +50,8 @@ export default function DispatchMap({ route, pickupRoute = null }: Props) {
       zoomControl: false,
     }).setView([42.145, 24.75], 13);
     mapRef.current = map;
+    // Зоната е под линиите на маршрутите и маркерите.
+    map.createPane("serviceArea").style.zIndex = "350";
     layersRef.current = L.layerGroup().addTo(map);
     L.control.zoom({ position: "topright" }).addTo(map);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -50,13 +73,27 @@ export default function DispatchMap({ route, pickupRoute = null }: Props) {
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!map || !area) return;
+    const boundary = L.geoJSON(area, {
+      pane: "serviceArea",
+      interactive: false,
+      style: { color: "#03203D", weight: 2, dashArray: "8 6", fillColor: "#639CC5", fillOpacity: 0.18 },
+    }).addTo(map);
+    return () => { boundary.remove(); };
+  }, [area]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     const layers = layersRef.current;
     if (!map || !layers) return;
     layers.clearLayers();
     const pickup = routePoints(pickupRoute);
     const delivery = routePoints(route);
     const allPoints = [...pickup, ...delivery];
-    if (!allPoints.length) return;
+    if (!allPoints.length) {
+      if (area) map.fitBounds(L.geoJSON(area).getBounds(), { padding: [20, 20], maxZoom: 14 });
+      return;
+    }
 
     const line = (points: L.LatLng[], color: string, dashed = false) => {
       if (points.length < 2) return;
@@ -102,7 +139,7 @@ export default function DispatchMap({ route, pickupRoute = null }: Props) {
       }).bindTooltip(title).addTo(layers);
     }
     map.fitBounds(L.latLngBounds(allPoints), { padding: [32, 32], maxZoom: 16 });
-  }, [route, pickupRoute]);
+  }, [route, pickupRoute, area]);
 
   const orderId = route?.order_id ?? pickupRoute?.order_id;
   return (
@@ -112,6 +149,23 @@ export default function DispatchMap({ route, pickupRoute = null }: Props) {
         className="map-host"
         aria-label={orderId ? "Маршрути за поръчка №" + orderId : "Карта на маршрутите"}
       />
+      <div className="service-area-note">
+        {area && <>
+          <p><strong>Синя зона: обслужван район</strong><br />
+            Демо покритие в Пловдив. Адресите извън границата не се приемат.
+          </p>
+          <button type="button" className="secondary" onClick={() => {
+            mapRef.current?.fitBounds(L.geoJSON(area).getBounds(), { padding: [20, 20], maxZoom: 14 });
+          }}>Покажи цялата зона</button>
+        </>}
+        {!area && !areaError && <p role="status">Зареждане на обслужвания район…</p>}
+        {areaError && <>
+          <p role="alert">Границата не се зареди. Сървърът продължава да проверява адресите.</p>
+          <button type="button" className="secondary" onClick={() => setAreaAttempt((value) => value + 1)}>
+            Опитай отново
+          </button>
+        </>}
+      </div>
       {tileError && (
         <small className="tile-note">
           Уличният фон не се зареди изцяло. Линиите показват изчислените маршрути.

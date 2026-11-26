@@ -33,9 +33,23 @@ from backend.services.route_service import (
     calculate_pickup_route,
 )
 from backend.routing.road_network import load_road_network, to_adjacency_dict
+from backend.routing.service_area import (
+    OutsideServiceAreaError, require_service_area, service_area_geojson,
+)
 
 
 app = FastAPI(title="SwiftRoute")
+
+
+@app.exception_handler(OutsideServiceAreaError)
+async def handle_outside_service_area(request, error):
+    return JSONResponse(status_code=422, content={"detail": str(error)})
+
+
+@app.get("/service-area", tags=["Покритие"])
+def read_service_area():
+    """Публична граница без лични данни; използва се и преди вход."""
+    return service_area_geojson()
 
 
 @app.get("/health", include_in_schema=False)
@@ -148,6 +162,7 @@ def change_courier_availability(
         )
 
         if data.is_available:
+            require_service_area(courier.latitude, courier.longitude, "Местоположението на куриера")
             permitted = db.scalar(select(CourierRecord.id).where(
                 CourierRecord.id == courier_id, courier_can_work(),
             ))
@@ -195,6 +210,7 @@ def change_courier_location(
             lock=True,
         )
 
+        require_service_area(data.latitude, data.longitude, "Местоположението на куриера")
         courier.latitude = data.latitude
         courier.longitude = data.longitude
 
@@ -237,10 +253,13 @@ def add_order(
     if user.role == "restaurant" and data.restaurant_id != user.restaurant_id:
         raise HTTPException(status_code=403, detail="Можеш да създаваш поръчки само за своя ресторант.")
     with db.begin():
-        require_visible(
+        restaurant = require_visible(
             db, select(RestaurantRecord).where(RestaurantRecord.id == data.restaurant_id, restaurant_can_work()),
             "Ресторантът не е намерен.",
         )
+
+        require_service_area(restaurant.latitude, restaurant.longitude, "Адресът на ресторанта")
+        require_service_area(data.delivery_latitude, data.delivery_longitude, "Адресът за доставка")
 
         order = OrderRecord(**data.model_dump())
         db.add(order)
@@ -306,6 +325,9 @@ def assign_order(order_id: int, user: CurrentUser = Depends(require_roles("admin
                 order.restaurant_id,
                 "Ресторантът не е намерен.",
             )
+
+            # Проверяваме и стари поръчки, преди да резервираме куриер.
+            require_service_area(order.delivery_latitude, order.delivery_longitude, "Адресът за доставка")
 
             couriers = db.scalars(
                 select(CourierRecord)

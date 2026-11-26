@@ -1,5 +1,6 @@
 from pathlib import Path
 import osmnx as ox
+from backend.routing.service_area import require_service_area
 
 
 def load_road_network():
@@ -29,6 +30,8 @@ def to_adjacency_dict(road_network):
     return graph
 
 def get_nearest_node(road_network, latitude, longitude):
+    # Проверка преди привързването: далечен адрес не трябва да се мести в Пловдив.
+    require_service_area(latitude, longitude)
     return int(
         ox.distance.nearest_nodes(
             road_network,

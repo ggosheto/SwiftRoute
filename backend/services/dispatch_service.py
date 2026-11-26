@@ -1,5 +1,6 @@
 from backend.routing.algorithms import reverse_graph, dijkstra
 from backend.routing.road_network import get_nearest_node
+from backend.routing.service_area import is_in_service_area
 
 def find_best_courier(graph, couriers, courier_nodes, restaurant_node):
     reversed_graph = reverse_graph(graph)
@@ -23,6 +24,10 @@ def find_best_courier(graph, couriers, courier_nodes, restaurant_node):
 
 def find_best_courier_for_restaurant(road_network, graph, couriers, restaurant):
     restaurant_node = get_nearest_node(road_network, restaurant.latitude, restaurant.longitude)
+
+    # Стари записи извън зоната не блокират избора на останалите куриери.
+    couriers = [courier for courier in couriers if courier.is_available
+                and is_in_service_area(courier.latitude, courier.longitude)]
 
     courier_nodes = {}
 

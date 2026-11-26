@@ -451,20 +451,8 @@ export default function Dashboard() {
                   </div>
                   <span className="tag">Дийкстра / A*</span>
                 </div>
-                {route || pickupRoute ? (
-                  <DispatchMap route={route} pickupRoute={pickupRoute} />
-                ) : (
-                  <div className="map-placeholder">
-                    <div className="map-ghost" />
-                    <div>
-                      <span className="empty-ico">
-                        <Icon name="route" size={26} />
-                      </span>
-                      <b>{finding ? "Изчисляване…" : routeErr ? "Маршрутът не е зареден" : "Избери маршрут"}</b>
-                      <small>От поръчка или по номер</small>
-                    </div>
-                  </div>
-                )}
+                <DispatchMap route={route} pickupRoute={pickupRoute} />
+                {finding && <p className="tile-note" role="status">Изчисляване на маршрут…</p>}
                 {routeErr && (
                   <p className="error" role="alert">
                     {routeErr}
