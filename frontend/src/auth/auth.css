@@ -33,7 +33,7 @@
 .workspace .courier{flex-wrap:wrap}.courier-controls{flex-basis:100%;padding-top:12px;border-top:2px solid #000;margin-top:6px;display:grid;gap:14px}
 .courier-controls button{justify-self:start}.courier-location-form{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0}
 .courier-location-form label{font-size:12px;font-weight:700;display:grid;gap:6px;min-width:0}.courier-location-form input{width:100%;min-width:0;padding:10px;background:white}
-.courier-location-form button{grid-column:1/-1}.courier-controls p{font-size:12px;line-height:1.5}
+.courier-location-form button,.courier-location-form p{grid-column:1/-1}.courier-controls p{font-size:12px;line-height:1.5}
 .sr-auth :is(button,a,input):focus-visible{outline:3px solid #639CC5;outline-offset:4px}
 @media(max-width:980px){.sr-auth-layout{gap:30px;grid-template-columns:1fr 1fr}.sr-auth-story h1{font-size:50px}.workspace .account-menu{margin-left:0}.workspace .top-in{justify-content:space-between}}
 @media(max-width:720px){.sr-auth-layout{grid-template-columns:1fr;padding-top:20px}.sr-auth-story h1{font-size:44px}.sr-auth-journey,.sr-auth-caption{display:none}.sr-auth-story>p{font-size:15px;margin-bottom:0}.sr-auth-label{margin-bottom:16px}.sr-auth-header{padding-block:18px}.sr-auth-back{font-size:12px}.sr-auth-footer{align-items:flex-start;font-size:11px}.sr-auth-card{padding:24px}.workspace .account-menu{width:100%;border-top:2px solid #639CC5;padding-top:12px;justify-content:space-between}.workspace .top nav{height:auto;gap:6px;flex-wrap:wrap}.workspace .nav{padding:8px}.sr-auth .sr-brand{font-size:23px}}

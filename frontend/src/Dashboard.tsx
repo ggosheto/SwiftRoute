@@ -191,6 +191,7 @@ export default function Dashboard() {
           </span>
           {(user?.role === "admin" || user?.courier_id === c.id) && (
             <CourierControls key={`${c.id}:${c.latitude}:${c.longitude}:${c.is_available}`} courier={c}
+              allowDeviceLocation={user?.role === "courier" && user.courier_id === c.id}
               disabled={loading || busy !== null || profileBusy || leaving || !!dbError}
               active={orders.some((o) => o.courier_id === c.id && ["assigned", "accepted", "picked_up"].includes(o.status))}
               save={(kind, values) => changeCourier(c, kind, values)} />
