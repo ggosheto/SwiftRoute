@@ -228,4 +228,4 @@ npm run dev
 
 Картографските данни са **© [OpenStreetMap contributors](https://www.openstreetmap.org/copyright)** и се предоставят съгласно Open Database License (ODbL). Атрибуцията се показва и върху картата в приложението.
 
-SwiftRoute се разработва от **[ggosheto](https://github.com/ggosheto)** като ученически състезателен проект. За въпроси и предложения: [GitHub Issues](https://github.com/ggosheto/SwiftRoute/issues).
+SwiftRoute е разработено от Георги Георгиев и Петя Пашова, учиници от 11А клас от Професионалната гимназия по електротехника и електроника - гр. Пловдив. За въпроси и предложения: [GitHub Issues](https://github.com/ggosheto/SwiftRoute/issues).
