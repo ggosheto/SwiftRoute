@@ -1,3 +1,3 @@
--r requirements.txt
+-r base.txt
 -r requirements-accounts.txt
 -r requirements-accounts-step2.txt
