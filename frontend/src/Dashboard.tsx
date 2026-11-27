@@ -37,6 +37,7 @@ export default function Dashboard() {
   }
   const [view, setView] = useState<View>("Табло"),
     [filter, setFilter] = useState<Filter>("Всички");
+  const [selectedCourierId, setSelectedCourierId] = useState<number | null>(null);
   const [data, setData] = useState<{
     orders: Order[];
     places: Place[];
@@ -177,11 +178,15 @@ export default function Dashboard() {
       "amber",
     ],
   ] as const;
+  const selectedCourier = couriers.find((c) => c.id === selectedCourierId) ?? couriers[0];
+  const displayedCouriers = view === "Табло"
+    ? (selectedCourier ? [selectedCourier] : [])
+    : couriers;
   const courierList = (
     <div className={view === "Куриери" ? "courier-grid" : "courier-list"}>
-      {couriers.map((c, i) => (
+      {displayedCouriers.map((c) => (
         <div className="courier" key={c.id}>
-          <span className={"avatar a" + (i % 3)}>{c.name.slice(0, 1)}</span>
+          <span className={"avatar a" + (c.id % 3)}>{c.name.slice(0, 1)}</span>
           <div>
             <b>{c.name}</b>
             <small>Куриер {num(c.id)}</small>
@@ -441,6 +446,32 @@ export default function Dashboard() {
                   </div>
                 )}
               </section>
+              {view === "Табло" && (
+                <section className="card courier-picker-card" aria-labelledby="courier-picker-title">
+                  <div className="card-head">
+                    <div>
+                      <span className="eyebrow">НА ТЕРЕН</span>
+                      <h2 id="courier-picker-title">Куриери <em>{data ? couriers.length : "—"}</em></h2>
+                    </div>
+                    <button className="text-btn" onClick={() => openView("Куриери")}>
+                      Всички <Icon name="arrow" size={14} />
+                    </button>
+                  </div>
+                  <div className="courier-picker-field">
+                    <label htmlFor="dashboard-courier">Избери куриер</label>
+                    <select id="dashboard-courier" value={selectedCourier?.id ?? ""}
+                      disabled={loading || !couriers.length || busy !== null || profileBusy || leaving}
+                      onChange={(event) => setSelectedCourierId(Number(event.target.value))}>
+                      {!couriers.length && <option value="">{loading ? "Зареждане…" : "Няма куриери"}</option>}
+                      {couriers.map((courier) => <option key={courier.id} value={courier.id}>
+                        {courier.name} · {num(courier.id)} · {courier.is_available ? "Свободен" : "Недостъпен"}
+                      </option>)}
+                    </select>
+                    <p>Профил и действия за избрания куриер.</p>
+                  </div>
+                  {courierList}
+                </section>
+              )}
             </div>
             <aside>
               <section className="card map-card" ref={routePanel}>
@@ -481,23 +512,6 @@ export default function Dashboard() {
                   </button>
                 </form>
               </section>
-              {view === "Табло" && (
-                <section className="card">
-                  <div className="card-head">
-                    <div>
-                      <span className="eyebrow">НА ТЕРЕН</span>
-                      <h2>Куриери</h2>
-                    </div>
-                    <button
-                      className="text-btn"
-                      onClick={() => openView("Куриери")}
-                    >
-                      Всички <Icon name="arrow" size={14} />
-                    </button>
-                  </div>
-                  {courierList}
-                </section>
-              )}
             </aside>
           </div>
         )}

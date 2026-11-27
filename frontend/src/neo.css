@@ -332,64 +332,10 @@
   border: 2px solid black;
   box-shadow: 4px 4px 0 black;
 }
-.n-ticker,
 .n-footer,
 .dark {
   background-color: var(--egypt);
   color: white;
-}
-.n-ticker {
-  border-bottom: 2px solid black;
-  padding: 14px 0;
-}
-.n-tick-in {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-.n-tick-in > strong {
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  white-space: nowrap;
-}
-.n-loop {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-}
-.n-track,
-.n-track > span {
-  display: flex;
-  width: max-content;
-  align-items: center;
-}
-.n-track {
-  animation: n-loop 38s linear infinite;
-  color: var(--stone);
-  opacity: 0.5;
-  font: 800 24px/1 var(--head);
-}
-.n-track.paused {
-  animation-play-state: paused;
-}
-.n-track i {
-  font-size: 15px;
-  padding: 0 28px;
-}
-.n-tick-in button {
-  background: var(--stone);
-  border: 2px solid black;
-  width: 30px;
-  height: 30px;
-  font-weight: 800;
-}
-.n-tick-in button:hover {
-  transform: translate(2px, 2px);
-}
-@keyframes n-loop {
-  to {
-    transform: translateX(-50%);
-  }
 }
 .n-section,
 .n-cta {
@@ -728,12 +674,6 @@
   .n-ftop {
     margin-bottom: 15px;
   }
-  .n-tick-in {
-    gap: 8px;
-  }
-  .n-track {
-    font-size: 18px;
-  }
   .n-actions {
     gap: 10px;
   }
@@ -746,9 +686,6 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .n-track {
-    animation: none;
-  }
   .neo * {
     transition: none !important;
   }

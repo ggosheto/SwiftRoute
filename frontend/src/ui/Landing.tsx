@@ -208,8 +208,7 @@ const quotes = [
   ["Диспечер", "„Кои доставки още са на път?“"],
 ];
 export default function Landing() {
-  const [paused, setPaused] = useState(false),
-    [menu, setMenu] = useState(false);
+  const [menu, setMenu] = useState(false);
   const nav = [
     ["#features", "Възможности"],
     ["#how", "Как работи"],
@@ -244,7 +243,7 @@ export default function Landing() {
           <div className="n-wrap n-hgrid">
             <div className="n-hero-copy">
               <span className="n-badge">
-                <i /> ПРОЕКТ ЗА НОИТ · ПЛОВДИВ
+                <i /> БЕТА ВЕРСИЯ · ПЛОВДИВ
               </span>
               <h1>
                 Поръчка.
@@ -267,40 +266,6 @@ export default function Landing() {
             <Mockup />
           </div>
         </section>
-        <div className="n-ticker">
-          <div className="n-wrap n-tick-in">
-            <strong>В ПРОЕКТА</strong>
-            <div className="n-loop">
-              <div className={"n-track " + (paused ? "paused" : "")}>
-                {[0, 1].map((i) => (
-                  <span key={i} aria-hidden={i === 1}>
-                    {[
-                      "OpenStreetMap",
-                      "PostgreSQL",
-                      "FastAPI",
-                      "React",
-                      "Leaflet",
-                      "Дийкстра",
-                      "A*",
-                    ].map((t) => (
-                      <b key={t}>
-                        {t}
-                        <i>✦</i>
-                      </b>
-                    ))}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <button
-              onClick={() => setPaused(!paused)}
-              aria-label={paused ? "Пусни лентата" : "Спри лентата"}
-              aria-pressed={paused}
-            >
-              {paused ? "▶︎" : "Ⅱ"}
-            </button>
-          </div>
-        </div>
         <section className="n-section white">
           <div className="n-wrap">
             <Caption index="01">ПРОБЛЕМ / РЕШЕНИЕ</Caption>
